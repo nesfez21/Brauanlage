@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Maischeprofil</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+</head>
+
+<body class="bg-light">
+
+<div class="container mt-4">
+
+    <h2 class="mb-4">🍺 Maischeprofil eingeben</h2>
+
+    <form method="post">
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Temperatur (°C)</th>
+            <th>Dauer (min)</th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody id="mash-table">
+        <tr>
+            <td>1</td>
+            <td><input class="form-control" type="number" name="temp[]" required></td>
+            <td><input class="form-control" type="number" name="time[]" required></td>
+            <td>
+                <button type="button" class="btn btn-danger"
+                        onclick="removeRow(this)">✕</button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<button type="button" class="btn btn-secondary mb-3"
+        onclick="addRow()">+ Rast hinzufügen</button>
+
+<button class="btn btn-success btn-lg w-100">
+    Brauvorgang starten
+</button>
+
+</form>
+
+<script>
+function addRow() {
+    const table = document.getElementById("mash-table");
+    const rowCount = table.rows.length + 1;
+
+    const row = table.insertRow();
+
+    row.innerHTML = `
+        <td>${rowCount}</td>
+        <td><input class="form-control" type="number" name="temp[]" required></td>
+        <td><input class="form-control" type="number" name="time[]" required></td>
+        <td>
+            <button type="button" class="btn btn-danger"
+                    onclick="removeRow(this)">✕</button>
+        </td>
+    `;
+}
+
+function removeRow(button) {
+    const row = button.parentNode.parentNode;
+    row.remove();
+
+    // Nummerierung neu setzen
+    const rows = document.getElementById("mash-table").rows;
+    for (let i = 0; i < rows.length; i++) {
+        rows[i].cells[0].innerText = i + 1;
+    }
+}
+</script>
+
+</div>
+
+</body>
+</html>
