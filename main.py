@@ -7,7 +7,7 @@ SENSOR_1 = "28-00000050b91c"
 SENSOR_2 = "28-00000052834d"
 
 HEATER_PIN = 5
-SETPOINT = 38.0
+SETPOINT = 55.0
 
 def main():
     preheat_controller = PreheatController(HEATER_PIN, SETPOINT)

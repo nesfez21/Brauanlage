@@ -4,24 +4,28 @@ from time import sleep
 class PreheatController():
     def __init__(self, heater_pin, setpoint):
         self.setpoint = setpoint
-        self.Kp = 5.0
-        self.Ki = 0.1
+        self.Kp = 6.0
+        self.Ki = 0.01
         self.windup_limit = 100.0
         self.window_time = 5.0
 
         self.heater = OutputDevice(heater_pin)
         self.integral = 0.0
+        self.integral_zone = 1.5
 
     def calculate_control_signal(self, current_temp):
         error = self.setpoint - current_temp
         dt = self.window_time
-        self.integral += error * dt
-        self.integral = max(-self.windup_limit,
-                        min(self.windup_limit, self.integral))
 
-        control_signal = self.Kp * error + self.Ki * self.integral
+        if(abs(error) < self.integral_zone):
+            self.integral += error * dt * self.Ki
+
+        self.integral = max(0.0, min(100.0, self.integral))
+
+        control_signal = self.Kp * error + self.integral
         # Begrenzen auf 0–100 %
         control_signal = max(0, min(100, control_signal))
+
         print(f"Error: {error:.2f}, Integral: {self.integral:.2f}")
 
         return control_signal
