@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Brauanlage</title>
+
+    <!-- Bootstrap CDN -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='static/css/bootstrap.min.css') }}">
+</head>
+
+<body class="bg-dark text-light">
+
+<div class="container py-4">
+
+    <h1 class="mb-4">Brauanlage</h1>
+
+    <!-- STATUS KARTE -->
+    <div class="card bg-secondary mb-4">
+        <div class="card-body">
+            <h4>Status</h4>
+
+            <p><strong>Zustand:</strong> <span id="state">-</span></p>
+            <p><strong>Temperatur:</strong> <span id="temperature">-</span> °C</p>
+            <p><strong>Sollwert:</strong> <span id="setpoint">-</span> °C</p>
+            <p><strong>Meldung:</strong> <span id="message">-</span></p>
+        </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="d-flex gap-3">
+
+        <button class="btn btn-warning"
+                onclick="startPreheat()">
+            Vorheizen starten
+        </button>
+
+        <button class="btn btn-success"
+                onclick="startMash()">
+            Maischprofil starten
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+function startPreheat() {
+    fetch('/start_preheat', {
+        method: 'POST'
+    });
+}
+
+function startMash() {
+    fetch('/start_mash', {
+        method: 'POST'
+    });
+}
+
+// Status automatisch aktualisieren
+function updateStatus() {
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('state').innerText = data.state;
+            document.getElementById('temperature').innerText = data.temperature;
+            document.getElementById('setpoint').innerText = data.setpoint;
+            document.getElementById('message').innerText = data.message;
+        });
+}
+
+// alle 1 Sekunde aktualisieren
+setInterval(updateStatus, 1000);
+
+// sofort beim Laden ausführen
+updateStatus();
+
+</script>
+
+</body>
+</html>

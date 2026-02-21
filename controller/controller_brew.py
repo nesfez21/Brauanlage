@@ -1,7 +1,7 @@
 from gpiozero import OutputDevice
 from time import sleep
 
-class PreheatController():
+class BrewController():
     def __init__(self, heater_pin, setpoint):
         self.setpoint = setpoint
         self.Kp = 6.0
