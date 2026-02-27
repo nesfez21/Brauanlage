@@ -1,85 +1,116 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Maischeprofil</title>
-
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='static/css/bootstrap.min.css') }}">
+    <title>Rezept</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 </head>
 
 <body class="bg-light">
 
 <div class="container mt-4">
 
-    <h2 class="mb-4">🍺 Maischeprofil eingeben</h2>
+    <h2 class="mb-4">Rezeptverwaltung</h2>
 
-    <form method="post">
+    <!-- JSON Laden -->
+    <div class="card mb-4">
+        <div class="card-header">JSON Rezept laden</div>
+        <div class="card-body">
+            <form method="POST" action="/load_json" enctype="multipart/form-data">
+                <input type="file" name="json_file" class="form-control mb-3" required>
+                <button type="submit" class="btn btn-primary">JSON laden</button>
+            </form>
+        </div>
+    </div>
 
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Temperatur (°C)</th>
-            <th>Dauer (min)</th>
-            <th></th>
-        </tr>
-    </thead>
+    <!-- Maischprofil -->
+    <div class="card mb-4">
+        <div class="card-header">Maischprofil</div>
+        <div class="card-body">
 
-    <tbody id="mash-table">
-        <tr>
-            <td>1</td>
-            <td><input class="form-control" type="number" name="temp[]" required></td>
-            <td><input class="form-control" type="number" name="time[]" required></td>
-            <td>
-                <button type="button" class="btn btn-danger"
-                        onclick="removeRow(this)">✕</button>
-            </td>
-        </tr>
-    </tbody>
-</table>
+            <!-- EIN einziges Formular -->
+            <form method="POST" action="/start_preheat">
 
-<button type="button" class="btn btn-secondary mb-3"
-        onclick="addRow()">+ Rast hinzufügen</button>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Temp (°C)</th>
+                            <th>Zeit (Min)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
 
-<button class="btn btn-success btn-lg w-100">
-    Brauvorgang starten
-</button>
+                    <tbody id="mashTable">
+                        {% if profile %}
+                            {% for step in profile %}
+                            <tr>
+                                <td>
+                                    <input type="number" step="0.1"
+                                           name="temp[]"
+                                           value="{{ step.temp }}"
+                                           class="form-control"
+                                           required>
+                                </td>
+                                <td>
+                                    <input type="number"
+                                           name="time[]"
+                                           value="{{ step.time }}"
+                                           class="form-control"
+                                           required>
+                                </td>
+                                <td>
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="removeRow(this)">X</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td><input type="number" step="0.1" name="temp[]" class="form-control" required></td>
+                                <td><input type="number" name="time[]" class="form-control" required></td>
+                                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">X</button></td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
 
-</form>
+                <!-- Rast hinzufügen -->
+                <button type="button"
+                        class="btn btn-secondary"
+                        onclick="addRow()">
+                    ➕ Rast hinzufügen
+                </button>
+
+                <!-- EINZIGER Vorheizen-Button -->
+                <div class="mt-4">
+                    <button type="submit"
+                            class="btn btn-primary btn-lg">
+                        🔥 Vorheizen starten
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
 
 <script>
 function addRow() {
-    const table = document.getElementById("mash-table");
-    const rowCount = table.rows.length + 1;
-
+    const table = document.getElementById("mashTable");
     const row = table.insertRow();
-
     row.innerHTML = `
-        <td>${rowCount}</td>
-        <td><input class="form-control" type="number" name="temp[]" required></td>
-        <td><input class="form-control" type="number" name="time[]" required></td>
-        <td>
-            <button type="button" class="btn btn-danger"
-                    onclick="removeRow(this)">✕</button>
-        </td>
+        <td><input type="number" step="0.1" name="temp[]" class="form-control" required></td>
+        <td><input type="number" name="time[]" class="form-control" required></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">X</button></td>
     `;
 }
 
-function removeRow(button) {
-    const row = button.parentNode.parentNode;
-    row.remove();
-
-    // Nummerierung neu setzen
-    const rows = document.getElementById("mash-table").rows;
-    for (let i = 0; i < rows.length; i++) {
-        rows[i].cells[0].innerText = i + 1;
-    }
+function removeRow(btn) {
+    btn.closest("tr").remove();
 }
 </script>
-
-</div>
 
 </body>
 </html>

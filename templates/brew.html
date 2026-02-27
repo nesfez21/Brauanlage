@@ -2,80 +2,112 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Brauanlage</title>
+    <meta http-equiv="refresh" content="3">
+    <title>Brauvorgang</title>
 
-    <!-- Bootstrap CDN -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='static/css/bootstrap.min.css') }}">
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 </head>
 
 <body class="bg-dark text-light">
 
-<div class="container py-4">
+<div class="container mt-4">
 
-    <h1 class="mb-4">Brauanlage</h1>
+    <h2 class="mb-4">Brauvorgang</h2>
 
-    <!-- STATUS KARTE -->
-    <div class="card bg-secondary mb-4">
-        <div class="card-body">
-            <h4>Status</h4>
+    <div class="card bg-secondary shadow p-4">
 
-            <p><strong>Zustand:</strong> <span id="state">-</span></p>
-            <p><strong>Temperatur:</strong> <span id="temperature">-</span> °C</p>
-            <p><strong>Sollwert:</strong> <span id="setpoint">-</span> °C</p>
-            <p><strong>Meldung:</strong> <span id="message">-</span></p>
+        <h5 class="mb-3">Status: {{ state }}</h5>
+        <hr>
+
+        <div class="row mb-2">
+            <div class="col-6">Sensor 1:</div>
+            <div class="col-6 text-end">
+                <strong>{{ temp1 }} °C</strong>
+            </div>
         </div>
+
+        <div class="row mb-2">
+            <div class="col-6">Sensor 2:</div>
+            <div class="col-6 text-end">
+                <strong>{{ temp2 }} °C</strong>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-6">Durchschnitt:</div>
+            <div class="col-6 text-end">
+                <strong>{{ avg }} °C</strong>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-6">Soll-Temperatur:</div>
+            <div class="col-6 text-end">
+                <strong>{{ setpoint }} °C</strong>
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-6">Heizleistung:</div>
+            <div class="col-6 text-end">
+                <strong>{{ power }} %</strong>
+            </div>
+        </div>
+
+        <!-- Rastanzeige nur im BREWING Zustand -->
+        {% if state == "BREWING" %}
+        <hr>
+
+        {% if remaining is not none %}
+            <div class="row mb-2">
+                <div class="col-6">Verbleibende Rastzeit:</div>
+                <div class="col-6 text-end">
+                    <strong>
+                        {{ (remaining // 60) }} min
+                        {{ (remaining % 60) }} s
+                    </strong>
+                </div>
+            </div>
+
+        {% elif avg >= setpoint - 1.0 %}
+            <div class="row mb-2">
+                <div class="col-12 text-center">
+                    <em>Rast startet...</em>
+                </div>
+            </div>
+
+        {% else %}
+            <div class="row mb-2">
+                <div class="col-12 text-center">
+                    <em>Aufheizen zur Rast...</em>
+                </div>
+            </div>
+        {% endif %}
+
+        {% endif %}
+
     </div>
 
-    <!-- BUTTONS -->
-    <div class="d-flex gap-3">
-
-        <button class="btn btn-warning"
-                onclick="startPreheat()">
-            Vorheizen starten
+    {% if state == "WAIT_FOR_MALT" %}
+    <form method="POST" action="/add_malt" class="mt-4">
+        <button type="submit"
+                class="btn btn-success btn-lg w-100">
+            🍺 Malz eingelegt – Start Maischen
         </button>
+    </form>
+    {% endif %}
 
-        <button class="btn btn-success"
-                onclick="startMash()">
-            Maischprofil starten
+    {% if state == "BREWING" and remaining is none %}
+    <form method="POST" action="/start_boil" class="mt-4">
+        <button type="submit"
+                class="btn btn-danger btn-lg w-100">
+            🔥 Kochen starten
         </button>
-
-    </div>
+    </form>
+    {% endif %}
 
 </div>
-
-<script>
-
-function startPreheat() {
-    fetch('/start_preheat', {
-        method: 'POST'
-    });
-}
-
-function startMash() {
-    fetch('/start_mash', {
-        method: 'POST'
-    });
-}
-
-// Status automatisch aktualisieren
-function updateStatus() {
-    fetch('/api/status')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('state').innerText = data.state;
-            document.getElementById('temperature').innerText = data.temperature;
-            document.getElementById('setpoint').innerText = data.setpoint;
-            document.getElementById('message').innerText = data.message;
-        });
-}
-
-// alle 1 Sekunde aktualisieren
-setInterval(updateStatus, 1000);
-
-// sofort beim Laden ausführen
-updateStatus();
-
-</script>
 
 </body>
 </html>

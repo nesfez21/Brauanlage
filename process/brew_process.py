@@ -2,164 +2,59 @@ import time
 
 
 class BrewProcess:
-
-    def __init__(self, preheat_controller, brew_controller):
-
-        self.preheat_controller = preheat_controller
-        self.brew_controller = brew_controller
-
-        self.active_controller = None
-
-        self.state = "IDLE"
-
-        self.current_temp = 0.0
-        self.setpoint = 0.0
-
-        self.preheat_setpoint = 0.0
-
+    def __init__(self):
         self.mash_profile = []
-        self.current_step = 0
+        self.current_step_index = 0
         self.step_start_time = None
 
-        self.message = ""
+    def load_recipe(self, recipe):
+        self.mash_profile = recipe["mash_profile"]
+        self.current_step_index = 0
+        self.step_start_time = None
 
-    # --------------------------------------------------
-    # VORHEIZEN STARTEN
-    # --------------------------------------------------
-
-    def start_preheat(self, setpoint):
-        self.preheat_setpoint = setpoint
-        self.setpoint = setpoint
-
-        self.active_controller = self.preheat_controller
-
-        self.state = "PREHEATING"
-        self.message = "Vorheizen gestartet"
-
-    # --------------------------------------------------
-    # MAISCHPROFIL LADEN
-    # mash_profile = [{"temp": 63, "time": 30}, ...]
-    # --------------------------------------------------
-
-    def load_mash_profile(self, profile):
-        self.mash_profile = profile
-
-    # --------------------------------------------------
-    # MAISCHEN STARTEN (nach PREHEAT_READY)
-    # --------------------------------------------------
-
-    def start_mash(self):
-
-        if self.state != "PREHEAT_READY":
-            return
-
+    def get_first_temp(self):
         if not self.mash_profile:
-            self.message = "Kein Maischprofil geladen"
-            return
+            return None
+        return self.mash_profile[0]["temp"]
 
-        self.current_step = 0
-        self.step_start_time = None
+    def get_profile(self):
+        return self.mash_profile
 
-        self.active_controller = self.brew_controller
-        self.setpoint = self.mash_profile[0]["temp"]
+    def update(self, current_temp):
+        if self.current_step_index >= len(self.mash_profile):
+            return None
 
-        self.state = "MASHING"
-        self.message = "Maischprofil gestartet"
+        step = self.mash_profile[self.current_step_index]
+        target = step["temp"]
 
-    # --------------------------------------------------
-    # ZYKLISCHES UPDATE (jede Sekunde aufrufen)
-    # --------------------------------------------------
+        if current_temp >= target - 1.0:
 
-    def update(self, temperature):
+            if self.step_start_time is None:
+                self.step_start_time = time.time()
 
-        self.current_temp = temperature
+            elapsed = time.time() - self.step_start_time
 
-        # ---------------------------------------------
-        # PREHEATING
-        # ---------------------------------------------
+            if elapsed >= step["time"] * 60:
 
-        if self.state == "PREHEATING":
+                self.current_step_index += 1
+                self.step_start_time = None
 
-            control = self.active_controller.calculate_control_signal(
-                self.current_temp
-            )
-            self.active_controller.control_heater(control)
-
-            if self.current_temp >= self.preheat_setpoint:
-                self.state = "PREHEAT_READY"
-                self.message = "Vorheizen fertig – Maische einfüllen"
-
-        # ---------------------------------------------
-        # PREHEAT_READY (halten!)
-        # ---------------------------------------------
-
-        elif self.state == "PREHEAT_READY":
-
-            control = self.active_controller.calculate_control_signal(
-                self.current_temp
-            )
-            self.active_controller.control_heater(control)
-
-        # ---------------------------------------------
-        # MASHING
-        # ---------------------------------------------
-
-        elif self.state == "MASHING":
-
-            step = self.mash_profile[self.current_step]
-            self.setpoint = step["temp"]
-
-            control = self.active_controller.calculate_control_signal(
-                self.current_temp
-            )
-            self.active_controller.control_heater(control)
-
-            # Wenn Temperatur erreicht → Zeit starten
-            if self.current_temp >= self.setpoint:
-
-                if self.step_start_time is None:
-                    self.step_start_time = time.time()
-                    self.message = f"Rast {self.current_step + 1} gestartet"
-
+                if self.current_step_index < len(self.mash_profile):
+                    return self.mash_profile[self.current_step_index]["temp"]
                 else:
-                    elapsed = time.time() - self.step_start_time
+                    return None
 
-                    if elapsed >= step["time"] * 60:
-                        self._next_step()
+        return target
 
-        # ---------------------------------------------
-        # FINISHED
-        # ---------------------------------------------
+    def get_remaining_time(self):
 
-        elif self.state == "FINISHED":
-            self.active_controller.control_heater(0)
+        if self.step_start_time is None:
+            return None
 
-    # --------------------------------------------------
-    # NÄCHSTE RAST
-    # --------------------------------------------------
+        step = self.mash_profile[self.current_step_index]
+        total_time = step["time"] * 60
 
-    def _next_step(self):
+        elapsed = time.time() - self.step_start_time
+        remaining = total_time - elapsed
 
-        self.current_step += 1
-        self.step_start_time = None
-
-        if self.current_step >= len(self.mash_profile):
-            self.state = "FINISHED"
-            self.message = "Maischprofil abgeschlossen"
-        else:
-            self.setpoint = self.mash_profile[self.current_step]["temp"]
-            self.message = f"Wechsel zu Rast {self.current_step + 1}"
-
-    # --------------------------------------------------
-    # STATUS FÜR FLASK
-    # --------------------------------------------------
-
-    def get_status(self):
-
-        return {
-            "state": self.state,
-            "temperature": round(self.current_temp, 2),
-            "setpoint": self.setpoint,
-            "step": self.current_step + 1 if self.mash_profile else 0,
-            "message": self.message
-        }
+        return max(0, int(remaining))

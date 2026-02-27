@@ -1,37 +1,42 @@
-from gpiozero import OutputDevice
 from time import sleep
 
 class PreheatController():
-    def __init__(self, heater_pin, setpoint):
+    def __init__(self, heater, setpoint):
         self.setpoint = setpoint
-        self.Kp = 5.5
-        self.Ki = 0.01
+        self.Kp = 6.0
+        self.Tn = 10.0
+        self.Tv = 0.5
         self.windup_limit = 100.0
         self.window_time = 5.0
-
-        self.heater = OutputDevice(heater_pin)
         self.integral = 0.0
-        self.integral_zone = 1.5
+        self.last_error = 0.0
+
+        self.heater = heater
 
     def calculate_control_signal(self, current_temp):
-        error = self.setpoint - current_temp
         dt = self.window_time
 
-        if 0 < error < self.integral_zone:
-            # normal aufbauen
-            self.integral += error * dt * self.Ki
+        # Fehler
+        error = self.setpoint - current_temp
 
-        elif error < 0:
-            # langsamer abbauen (z. B. 20 % Geschwindigkeit)
-            self.integral += error * dt * self.Ki * 0.2
+        # ----- Integral -----
+        self.integral += error * dt
 
-        self.integral = max(0.0, min(100.0, self.integral))
+        # ----- Differential -----
+        derivative = (error - self.last_error) / dt
 
-        control_signal = self.Kp * error + self.integral
-        # Begrenzen auf 0–100 %
-        control_signal = max(0, min(100, control_signal))
+        # ----- Reglergleichung -----
+        control_signal = self.Kp * (
+            error
+            + (1 / self.Tn) * self.integral
+            + self.Tv * derivative
+        )
 
-        print(f"Error: {error:.2f}, Integral: {self.integral:.2f}")
+        # Ausgang begrenzen
+        control_signal = max(0.0, min(100.0, control_signal))
+
+        # Fehler speichern
+        self.last_error = error
 
         return control_signal
 
