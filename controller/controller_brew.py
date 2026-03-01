@@ -1,12 +1,11 @@
 from time import sleep
 
-class BrewController():
+class PreheatController():
     def __init__(self, heater, setpoint):
         self.setpoint = setpoint
-        self.Kp = 6.0
-        self.Tn = 10.0
-        self.Tv = 0.5
-        self.windup_limit = 100.0
+        self.Kp = 6.02
+        self.Tn = 10745.0
+        self.Tv = 235.0
         self.window_time = 5.0
         self.integral = 0.0
         self.last_error = 0.0
